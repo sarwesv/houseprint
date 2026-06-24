@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #ddd; }
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #060f1e; }
 
     /* ── Toolbar ── */
     #toolbar {
@@ -16,8 +16,8 @@
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
-      background: #d0d0d0;
-      border-bottom: 2px solid #aaa;
+      background: #0a1628;
+      border-bottom: 1px solid #1a3a6e;
       padding: 8px 12px;
       min-height: 48px;
     }
@@ -26,33 +26,41 @@
     button {
       padding: 6px 13px;
       font-size: 13px;
-      border: 1px solid #999;
+      border: 1px solid #1e3f7a;
       border-radius: 4px;
-      background: white;
+      background: #0d1f3c;
+      color: #6aaee8;
       cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
-    button:hover { background: #eee; }
-    button.active { background: #4a90d9; color: white; border-color: #2a70b9; }
+    button:hover { background: #142a52; border-color: #4a90d9; color: #a8d4ff; }
+    button.active { background: #0e3060; color: #5bc8ff; border-color: #5bc8ff; }
 
     select {
       padding: 5px 8px;
       font-size: 13px;
-      border: 1px solid #999;
+      border: 1px solid #1e3f7a;
       border-radius: 4px;
-      background: white;
+      background: #0d1f3c;
+      color: #6aaee8;
       cursor: pointer;
     }
-    label { font-size: 13px; color: #444; }
-    .sep { width: 1px; height: 28px; background: #aaa; margin: 0 4px; }
+    select option { background: #0d1f3c; color: #6aaee8; }
 
-    #btn-add-floor { background: #e0ffe0; border-color: #5aad5a; }
-    #btn-delete    { background: #ffe0e0; border-color: #d9504a; display: none; }
-    #btn-download  { background: #dff0ff; border-color: #4a90d9; }
+    label { font-size: 13px; color: #4a7aaa; }
+    .sep { width: 1px; height: 28px; background: #1a3a6e; margin: 0 4px; }
+
+    #btn-add-floor { border-color: #1e6e3a; color: #4dd88a; }
+    #btn-add-floor:hover { background: #0a2218; border-color: #2ea85a; }
+    #btn-delete    { border-color: #6e1e1e; color: #ff7070; display: none; }
+    #btn-delete:hover { background: #220a0a; border-color: #cc3333; }
+    #btn-download  { border-color: #1e4a8a; color: #5bc8ff; }
+    #btn-download:hover { background: #0e2a52; }
 
     #hint {
       margin-left: auto;
       font-size: 12px;
-      color: #666;
+      color: #2a4a6e;
       font-style: italic;
       white-space: nowrap;
     }
@@ -62,7 +70,7 @@
       bottom: 8px;
       left: 10px;
       font-size: 11px;
-      color: #aaa;
+      color: #1e3a6e;
       pointer-events: none;
       user-select: none;
     }
@@ -72,33 +80,34 @@
       flex: 1;
       overflow: auto;
       padding: 16px;
+      background: #060f1e;
     }
 
     #canvas {
       display: block;
       cursor: crosshair;
-      background-color: white;
+      background-color: #0a1628;
       background-image:
-        linear-gradient(rgba(180,180,180,0.4) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(180,180,180,0.4) 1px, transparent 1px);
+        linear-gradient(rgba(40,100,200,0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40,100,200,0.18) 1px, transparent 1px);
       background-size: 20px 20px;
-      box-shadow: 2px 2px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 0 40px rgba(0,80,200,0.2);
     }
 
-    /* ── SVG element classes (styled via CSS, not inline attrs) ── */
+    /* ── SVG element classes ── */
     .design-rect {
-      stroke: #222;
+      stroke: #5aaff0;
       stroke-width: 2;
       cursor: pointer;
     }
     .design-line {
       fill: none;
-      stroke: #222;
+      stroke: #5bc8ff;
       stroke-width: 2.5;
       cursor: pointer;
     }
     .design-text {
-      fill: #111;
+      fill: #c0e0ff;
       font-family: Arial, sans-serif;
       cursor: pointer;
       user-select: none;
@@ -107,20 +116,20 @@
     /* ── Selection overlay ── */
     .selected-outline {
       fill: none;
-      stroke: #2277dd;
+      stroke: #5bc8ff;
       stroke-width: 1.5;
       stroke-dasharray: 5 3;
       pointer-events: none;
     }
     .control-handle {
-      fill: white;
-      stroke: #2277dd;
+      fill: #0a1628;
+      stroke: #5bc8ff;
       stroke-width: 2;
       cursor: se-resize;
     }
     .bend-handle {
-      fill: #ff7700;
-      stroke: white;
+      fill: #ff9900;
+      stroke: #0a1628;
       stroke-width: 1.5;
       cursor: grab;
     }
@@ -141,13 +150,13 @@
   <label>Fill:
     <select id="fill-select" onchange="updateFillColor(this.value)">
       <option value="none">None</option>
-      <option value="#ffffff">White</option>
-      <option value="#dce8ff">Blue</option>
-      <option value="#fffce0">Yellow</option>
-      <option value="#e8f5e9">Green</option>
-      <option value="#f5e8ff">Purple</option>
-      <option value="#ffe8e8">Pink</option>
-      <option value="#e8e8e8">Gray</option>
+      <option value="#c8e0ff">Sky</option>
+      <option value="#b0f0d8">Mint</option>
+      <option value="#fff0a0">Amber</option>
+      <option value="#e0b8ff">Violet</option>
+      <option value="#ffb8b8">Rose</option>
+      <option value="#b8e8ff">Cyan</option>
+      <option value="#d0d8e8">Stone</option>
     </select>
   </label>
 
