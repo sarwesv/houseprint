@@ -30,7 +30,7 @@ Open the live site or run locally by opening `index.html` in any modern browser.
 ## Files
 
 - `index.html` — app layout and styles
-- `coolcode.js` — all drawing, floor management, and PDF export logic
+- `main.js` — all drawing, floor management, and PDF export logic
 
 ## Tech
 

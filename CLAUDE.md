@@ -11,13 +11,15 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
+> **Known issue:** `index.html` currently references `<script src="coolcode.js">` but the actual file is `main.js`. Fix by updating the script tag to `<script src="main.js">`.
+
 ## Architecture
 
 The app is two files:
 
-**`index.html`** — layout, CSS, and the SVG canvas. Defines all DOM IDs that `coolcode.js` binds to. The drawing surface is an inline `<svg id="canvas">` with a child `<g id="selection-layer">` that always stays on top via `restructureLayers()`.
+**`index.html`** — layout, CSS, and the SVG canvas. Defines all DOM IDs that `main.js` binds to. The drawing surface is an inline `<svg id="canvas">` with a child `<g id="selection-layer">` that always stays on top via `restructureLayers()`.
 
-**`coolcode.js`** — all logic. No framework, no modules. Runs top-level on load (`updateFloorMenu(); loadFloor()` at the bottom).
+**`main.js`** — all logic. No framework, no modules. Runs top-level on load (`updateFloorMenu(); loadFloor()` at the bottom).
 
 ### State model
 
@@ -41,9 +43,9 @@ Mouse events on the SVG drive everything through `interactionMode`:
 
 ### PDF export
 
-`downloadPDF()` iterates `floors`, reconstructs each floor's elements into jsPDF draw calls (rect → `pdf.rect`, path → two `pdf.line` segments approximating the quadratic curve, text → `pdf.text`), and saves `architectural_blueprint_suite.pdf`.
+`downloadPDF()` iterates `floors`, reconstructs each floor's elements into jsPDF draw calls (rect → `pdf.rect`, path → two `pdf.line` segments approximating the quadratic curve, text → `pdf.text`), and saves `architectural_blueprint_suite.pdf`. jsPDF is loaded from CDN in `index.html` and accessed via `window.jspdf`.
 
-## Key DOM IDs expected by coolcode.js
+## Key DOM IDs expected by main.js
 
 | ID | Element |
 |----|---------|
