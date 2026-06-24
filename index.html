@@ -57,6 +57,16 @@
       white-space: nowrap;
     }
 
+    #version-badge {
+      position: fixed;
+      bottom: 8px;
+      left: 10px;
+      font-size: 11px;
+      color: #aaa;
+      pointer-events: none;
+      user-select: none;
+    }
+
     /* ── Canvas area ── */
     #canvas-container {
       flex: 1;
@@ -161,6 +171,7 @@
   </svg>
 </div>
 
+<div id="version-badge"></div>
 <script src="main.js"></script>
 </body>
 </html>

@@ -348,3 +348,22 @@ function downloadPDF() {
 
 updateFloorMenu();
 loadFloor();
+
+let _loadedVersion = null;
+
+async function _fetchVersion() {
+    const res = await fetch('version.json?_=' + Date.now());
+    const data = await res.json();
+    return data.version;
+}
+
+_fetchVersion().then(v => {
+    _loadedVersion = v;
+    document.getElementById('version-badge').textContent = 'v' + v;
+}).catch(() => {});
+
+setInterval(() => {
+    _fetchVersion().then(v => {
+        if (_loadedVersion && v !== _loadedVersion) location.reload();
+    }).catch(() => {});
+}, 30000);
