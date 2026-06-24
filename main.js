@@ -1,34 +1,83 @@
 const svg = document.getElementById('canvas');
 const selectionLayer = document.getElementById('selection-layer');
 const deleteBtn = document.getElementById('btn-delete');
-const fillSelect = document.getElementById('fill-select');
 
 let currentTool = 'select';
 let floors = { "Floor 1": [] };
 let currentFloor = "Floor 1";
 
 let activeElement = null;
-let interactionMode = null; 
+let interactionMode = null;
 let startX, startY;
 let currentFill = 'none';
+
+// ── Tool selection ──────────────────────────────────────────────────────────
 
 function setTool(toolName) {
     currentTool = toolName;
     document.querySelectorAll('.tool-group button').forEach(btn => {
-        if(btn.id.startsWith('tool-')) btn.classList.remove('active');
+        if (btn.id.startsWith('tool-')) btn.classList.remove('active');
     });
     const activeBtn = document.getElementById(`tool-${toolName}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    if (activeBtn) activeBtn.classList.add('active');
     if (toolName !== 'select') clearSelection();
 }
 
-function updateFillColor(val) {
-    currentFill = val;
+// ── RGB fill sliders ────────────────────────────────────────────────────────
+
+function slidersToHex() {
+    const r = parseInt(document.getElementById('slider-r').value);
+    const g = parseInt(document.getElementById('slider-g').value);
+    const b = parseInt(document.getElementById('slider-b').value);
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function updateColorPreview() {
+    const isNone = document.getElementById('fill-none-check').checked;
+    const hex = slidersToHex();
+    const preview = document.getElementById('color-preview');
+    preview.style.background = isNone ? 'transparent' : hex;
+    preview.classList.toggle('no-fill', isNone);
+    document.getElementById('val-r').textContent = document.getElementById('slider-r').value;
+    document.getElementById('val-g').textContent = document.getElementById('slider-g').value;
+    document.getElementById('val-b').textContent = document.getElementById('slider-b').value;
+}
+
+function onSliderChange() {
+    document.getElementById('fill-none-check').checked = false;
+    currentFill = slidersToHex();
+    updateColorPreview();
     if (currentTool === 'select' && activeElement && activeElement.tagName === 'rect') {
-        activeElement.setAttribute('fill', val);
+        activeElement.setAttribute('fill', currentFill);
         saveState();
     }
 }
+
+function onFillNoneChange() {
+    currentFill = document.getElementById('fill-none-check').checked ? 'none' : slidersToHex();
+    updateColorPreview();
+    if (currentTool === 'select' && activeElement && activeElement.tagName === 'rect') {
+        activeElement.setAttribute('fill', currentFill);
+        saveState();
+    }
+}
+
+function syncSlidersToFill(fill) {
+    if (!fill || fill === 'none') {
+        document.getElementById('fill-none-check').checked = true;
+    } else {
+        document.getElementById('fill-none-check').checked = false;
+        const r = parseInt(fill.slice(1, 3), 16);
+        const g = parseInt(fill.slice(3, 5), 16);
+        const b = parseInt(fill.slice(5, 7), 16);
+        document.getElementById('slider-r').value = r;
+        document.getElementById('slider-g').value = g;
+        document.getElementById('slider-b').value = b;
+    }
+    updateColorPreview();
+}
+
+// ── Mouse events ────────────────────────────────────────────────────────────
 
 svg.addEventListener('mousedown', (e) => {
     const coords = getMouseCoords(e);
@@ -46,17 +95,14 @@ svg.addEventListener('mousedown', (e) => {
                 d: `M ${startX} ${startY} Q ${startX} ${startY} ${startX} ${startY}`, class: 'design-line'
             });
         } else if (currentTool === 'text') {
-            const str = prompt("Enter text label:");
-            if (str) {
-                activeElement = createSVGElement('text', {
-                    x: startX, y: startY, class: 'design-text', 'font-size': '16'
-                }, str);
-                saveState();
-                setTool('select');
-                selectElement(activeElement);
-            } else {
-                setTool('select');
-            }
+            activeElement = createSVGElement('text', {
+                x: startX, y: startY, class: 'design-text', 'font-size': '16'
+            }, 'Double-click to enter text');
+            setupSelectable(activeElement);
+            saveState();
+            setTool('select');
+            selectElement(activeElement);
+            restructureLayers();
             interactionMode = null;
         }
         return;
@@ -75,13 +121,13 @@ svg.addEventListener('mousemove', (e) => {
         if (currentTool === 'shape') {
             const x = Math.min(startX, coords.x);
             const y = Math.min(startY, coords.y);
-            setAttrs(activeElement, { x: x, y: y, width: Math.abs(dx), height: Math.abs(dy) });
+            setAttrs(activeElement, { x, y, width: Math.abs(dx), height: Math.abs(dy) });
         } else if (currentTool === 'line') {
             const mx = (startX + coords.x) / 2;
             const my = (startY + coords.y) / 2;
             setAttrs(activeElement, { d: `M ${startX} ${startY} Q ${mx} ${my} ${coords.x} ${coords.y}` });
         }
-    } 
+    }
     else if (interactionMode === 'moving' && activeElement) {
         if (activeElement.tagName === 'rect' || activeElement.tagName === 'text') {
             setAttrs(activeElement, {
@@ -129,8 +175,7 @@ window.addEventListener('mouseup', () => {
         let targetEl = activeElement;
         setTool('select');
         selectElement(targetEl);
-        // Clean layer order sorting instantly right after drawing
-        restructureLayers(); 
+        restructureLayers();
     } else if (interactionMode) {
         saveState();
     }
@@ -140,6 +185,8 @@ window.addEventListener('mouseup', () => {
 window.addEventListener('keydown', (e) => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && currentTool === 'select') deleteActiveElement();
 });
+
+// ── Selection ───────────────────────────────────────────────────────────────
 
 function setupSelectable(el) {
     el.addEventListener('mousedown', (e) => {
@@ -151,12 +198,19 @@ function setupSelectable(el) {
         startX = coords.x;
         startY = coords.y;
     });
+
+    if (el.tagName === 'text') {
+        el.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            startTextEdit(el);
+        });
+    }
 }
 
 function selectElement(el) {
     activeElement = el;
     deleteBtn.style.display = 'block';
-    if(el.tagName === 'rect') fillSelect.value = el.getAttribute('fill') || 'none';
+    if (el.tagName === 'rect') syncSlidersToFill(el.getAttribute('fill') || 'none');
     updateSelectionOverlay();
 }
 
@@ -174,6 +228,62 @@ function deleteActiveElement() {
     }
 }
 
+// ── Inline text editing ─────────────────────────────────────────────────────
+
+function startTextEdit(el) {
+    const bbox = el.getBBox();
+    const svgRect = svg.getBoundingClientRect();
+    const fontSize = parseFloat(el.getAttribute('font-size')) || 16;
+
+    el.style.visibility = 'hidden';
+    clearSelection();
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = el.textContent === 'Double-click to enter text' ? '' : el.textContent;
+    input.placeholder = 'Type label...';
+    Object.assign(input.style, {
+        position:   'fixed',
+        left:       (svgRect.left + bbox.x) + 'px',
+        top:        (svgRect.top + bbox.y - 2) + 'px',
+        fontSize:   fontSize + 'px',
+        fontFamily: 'Arial, sans-serif',
+        background: '#0d1f3c',
+        color:      '#c0e0ff',
+        border:     '1px solid #5bc8ff',
+        padding:    '2px 6px',
+        outline:    'none',
+        minWidth:   '140px',
+        zIndex:     '1000',
+        borderRadius: '3px',
+    });
+
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+
+    function finish() {
+        const newText = input.value.trim() || 'Double-click to enter text';
+        el.textContent = newText;
+        el.style.visibility = '';
+        if (document.body.contains(input)) document.body.removeChild(input);
+        saveState();
+        selectElement(el);
+    }
+
+    input.addEventListener('blur', finish);
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') input.blur();
+        if (ev.key === 'Escape') {
+            input.removeEventListener('blur', finish);
+            el.style.visibility = '';
+            document.body.removeChild(input);
+        }
+    });
+}
+
+// ── Selection overlay ───────────────────────────────────────────────────────
+
 function updateSelectionOverlay() {
     selectionLayer.innerHTML = '';
     if (!activeElement || currentTool !== 'select') return;
@@ -183,14 +293,14 @@ function updateSelectionOverlay() {
         const y = parseFloat(activeElement.getAttribute('y'));
         const w = parseFloat(activeElement.getAttribute('width'));
         const h = parseFloat(activeElement.getAttribute('height'));
-        createOverlayElement('rect', { x: x, y: y, width: w, height: h, class: 'selected-outline' });
+        createOverlayElement('rect', { x, y, width: w, height: h, class: 'selected-outline' });
         createHandle(x + w, y + h, 'resizing');
-    } 
+    }
     else if (activeElement.tagName === 'text') {
         const bbox = activeElement.getBBox();
         createOverlayElement('rect', { x: bbox.x - 2, y: bbox.y - 2, width: bbox.width + 4, height: bbox.height + 4, class: 'selected-outline' });
         createHandle(bbox.x + bbox.width, bbox.y + bbox.height, 'resizing');
-    } 
+    }
     else if (activeElement.tagName === 'path') {
         const pts = parsePath(activeElement.getAttribute('d'));
         createHandle(pts.x2, pts.y2, 'resizing');
@@ -199,7 +309,7 @@ function updateSelectionOverlay() {
 }
 
 function createHandle(cx, cy, mode, isBend = false) {
-    const handle = createOverlayElement('circle', { cx: cx, cy: cy, r: 7, class: isBend ? 'bend-handle' : 'control-handle' });
+    const handle = createOverlayElement('circle', { cx, cy, r: 7, class: isBend ? 'bend-handle' : 'control-handle' });
     handle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
         interactionMode = mode;
@@ -209,16 +319,14 @@ function createHandle(cx, cy, mode, isBend = false) {
     });
 }
 
-/**
- * NEW LOGIC: Forces all text blocks to jump cleanly to the front layer.
- */
+// ── Layer ordering ──────────────────────────────────────────────────────────
+
 function restructureLayers() {
-    const textItems = svg.querySelectorAll('.design-text');
-    textItems.forEach(item => {
-        svg.appendChild(item); // Appending an element to its parent pushes it to the front visual layer
-    });
-    if (selectionLayer) svg.appendChild(selectionLayer); // Selection box always stays on absolute top
+    svg.querySelectorAll('.design-text').forEach(item => svg.appendChild(item));
+    if (selectionLayer) svg.appendChild(selectionLayer);
 }
+
+// ── SVG helpers ─────────────────────────────────────────────────────────────
 
 function createSVGElement(type, attrs, textContent = '') {
     const el = document.createElementNS('http://www.w3.org/2000/svg', type);
@@ -245,9 +353,11 @@ function getMouseCoords(e) {
 }
 
 function parsePath(dAttr) {
-    const parts = dAttr.replace(/[M|Q]/g, '').trim().split(/\s+/).map(Number);
+    const parts = dAttr.replace(/[MQ]/g, '').trim().split(/\s+/).map(Number);
     return { x1: parts[0], y1: parts[1], cx: parts[2], cy: parts[3], x2: parts[4], y2: parts[5] };
 }
+
+// ── Floor management ────────────────────────────────────────────────────────
 
 function updateFloorMenu() {
     const select = document.getElementById('floor-select');
@@ -263,9 +373,8 @@ function updateFloorMenu() {
 function addNewFloor() {
     saveState();
     const count = Object.keys(floors).length + 1;
-    const name = `Floor ${count}`;
-    floors[name] = [];
-    currentFloor = name;
+    floors[`Floor ${count}`] = [];
+    currentFloor = `Floor ${count}`;
     updateFloorMenu();
     loadFloor();
 }
@@ -278,13 +387,11 @@ function switchFloor(name) {
 
 function saveState() {
     let state = [];
-    // Select shapes and lines first
     svg.querySelectorAll('.design-rect, .design-line').forEach(el => {
         let data = { type: el.tagName, attrs: {} };
         for (let attr of el.attributes) data.attrs[attr.name] = attr.value;
         state.push(data);
     });
-    // Append text elements last so they consistently save on top
     svg.querySelectorAll('.design-text').forEach(el => {
         let data = { type: el.tagName, attrs: {}, text: el.textContent };
         for (let attr of el.attributes) data.attrs[attr.name] = attr.value;
@@ -296,25 +403,27 @@ function saveState() {
 function loadFloor() {
     svg.querySelectorAll('.design-rect, .design-line, .design-text').forEach(el => el.remove());
     clearSelection();
-    const state = floors[currentFloor] || [];
-    state.forEach(obj => {
+    (floors[currentFloor] || []).forEach(obj => {
         const el = createSVGElement(obj.type, obj.attrs, obj.text);
         setupSelectable(el);
     });
     restructureLayers();
 }
 
+// ── PDF export ──────────────────────────────────────────────────────────────
+
 function downloadPDF() {
     saveState();
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('landscape', 'pt', [1000, 750]);
+    const title = document.getElementById('pdf-title').value.trim() || 'Blueprint';
     const sortedFloors = Object.keys(floors).sort();
 
     sortedFloors.forEach((floorName, index) => {
         if (index > 0) pdf.addPage([1000, 750], 'landscape');
         pdf.setFont("Helvetica", "bold");
         pdf.setFontSize(22);
-        pdf.text(`House Architecture Blueprint Suite: ${floorName}`, 50, 50);
+        pdf.text(`${title}: ${floorName}`, 50, 50);
         pdf.setLineWidth(1.5);
         pdf.line(50, 65, 950, 65);
 
@@ -325,10 +434,7 @@ function downloadPDF() {
                 const w = parseFloat(item.attrs.width);
                 const h = parseFloat(item.attrs.height);
                 const fill = item.attrs.fill || 'none';
-                if(fill !== 'none') {
-                    pdf.setFillColor(fill);
-                    pdf.rect(x, y, w, h, 'F');
-                }
+                if (fill !== 'none') { pdf.setFillColor(fill); pdf.rect(x, y, w, h, 'F'); }
                 pdf.setLineWidth(2.5);
                 pdf.rect(x, y, w, h, 'S');
             } else if (item.type === 'path') {
@@ -343,9 +449,12 @@ function downloadPDF() {
             }
         });
     });
-    pdf.save('architectural_blueprint_suite.pdf');
+    pdf.save('blueprint.pdf');
 }
 
+// ── Init ────────────────────────────────────────────────────────────────────
+
+updateColorPreview();
 updateFloorMenu();
 loadFloor();
 

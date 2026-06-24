@@ -65,6 +65,55 @@
       white-space: nowrap;
     }
 
+    /* ── RGB fill sliders ── */
+    #fill-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #color-preview {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px dashed #1e4080;
+      flex-shrink: 0;
+    }
+    #color-preview.no-fill {
+      background: transparent !important;
+      border-style: dashed;
+    }
+    .rgb-sliders { display: flex; flex-direction: column; gap: 2px; }
+    .rgb-row { display: flex; align-items: center; gap: 4px; }
+    .rgb-label { font-size: 11px; color: #4a7aaa; width: 10px; }
+    .rgb-val   { font-size: 11px; color: #4a7aaa; width: 22px; text-align: right; }
+    input[type="range"] {
+      width: 72px;
+      height: 3px;
+      cursor: pointer;
+      accent-color: #5bc8ff;
+    }
+    .none-check-label {
+      font-size: 12px;
+      color: #4a7aaa;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+    }
+    input[type="checkbox"] { accent-color: #5bc8ff; cursor: pointer; }
+
+    /* ── PDF title input ── */
+    #pdf-title {
+      padding: 5px 8px;
+      font-size: 12px;
+      border: 1px solid #1e3f7a;
+      border-radius: 4px;
+      background: #0d1f3c;
+      color: #6aaee8;
+      width: 160px;
+    }
+    #pdf-title::placeholder { color: #2a4a6e; }
+
     #version-badge {
       position: fixed;
       bottom: 8px;
@@ -149,18 +198,16 @@
 
   <div class="sep"></div>
 
-  <label>Fill:
-    <select id="fill-select" onchange="updateFillColor(this.value)">
-      <option value="none">None</option>
-      <option value="#c8e0ff">Sky</option>
-      <option value="#b0f0d8">Mint</option>
-      <option value="#fff0a0">Amber</option>
-      <option value="#e0b8ff">Violet</option>
-      <option value="#ffb8b8">Rose</option>
-      <option value="#b8e8ff">Cyan</option>
-      <option value="#d0d8e8">Stone</option>
-    </select>
-  </label>
+  <div id="fill-control">
+    <label>Fill:</label>
+    <div id="color-preview" class="no-fill"></div>
+    <div class="rgb-sliders">
+      <div class="rgb-row"><span class="rgb-label">R</span><input type="range" id="slider-r" min="0" max="255" value="200" oninput="onSliderChange()"><span class="rgb-val" id="val-r">200</span></div>
+      <div class="rgb-row"><span class="rgb-label">G</span><input type="range" id="slider-g" min="0" max="255" value="224" oninput="onSliderChange()"><span class="rgb-val" id="val-g">224</span></div>
+      <div class="rgb-row"><span class="rgb-label">B</span><input type="range" id="slider-b" min="0" max="255" value="255" oninput="onSliderChange()"><span class="rgb-val" id="val-b">255</span></div>
+    </div>
+    <label class="none-check-label"><input type="checkbox" id="fill-none-check" checked onchange="onFillNoneChange()"> None</label>
+  </div>
 
   <div class="sep"></div>
 
@@ -171,6 +218,7 @@
   <div class="sep"></div>
 
   <button id="btn-delete"   onclick="deleteActiveElement()">Delete Selected</button>
+  <input type="text" id="pdf-title" value="House Blueprint" placeholder="PDF title...">
   <button id="btn-download" onclick="downloadPDF()">Download PDF</button>
 
   <span id="hint">Drag corner handle to resize &nbsp;·&nbsp; Drag orange handle to bend walls &nbsp;·&nbsp; Delete / Backspace to remove</span>
