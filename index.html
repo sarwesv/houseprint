@@ -4,489 +4,162 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Multi-Floor House Design Tool</title>
-  <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
-  <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #e0e0e0; }
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #ddd; }
 
+    /* ── Toolbar ── */
     #toolbar {
-      background: #d4d4d4;
-      padding: 8px 12px;
       display: flex;
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
+      background: #d0d0d0;
       border-bottom: 2px solid #aaa;
+      padding: 8px 12px;
       min-height: 48px;
     }
+    .tool-group { display: flex; gap: 4px; }
+
     button {
       padding: 6px 13px;
-      cursor: pointer;
-      border: 1px solid #999;
-      background: white;
-      border-radius: 4px;
       font-size: 13px;
+      border: 1px solid #999;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
     }
-    button:hover { background: #f0f0f0; }
+    button:hover { background: #eee; }
     button.active { background: #4a90d9; color: white; border-color: #2a70b9; }
-    #btn-add-floor { background: #e0ffe0; border-color: #4a9d4a; }
-    #btn-delete { background: #ffe0e0; border-color: #d9504a; }
-    #btn-download { background: #e0f0ff; border-color: #4a90d9; }
+
     select {
       padding: 5px 8px;
+      font-size: 13px;
       border: 1px solid #999;
       border-radius: 4px;
-      font-size: 13px;
       background: white;
+      cursor: pointer;
     }
     label { font-size: 13px; color: #444; }
-    .sep { width: 1px; background: #aaa; height: 28px; margin: 0 4px; }
-    #status { margin-left: auto; font-size: 13px; color: #555; font-style: italic; }
+    .sep { width: 1px; height: 28px; background: #aaa; margin: 0 4px; }
 
+    #btn-add-floor { background: #e0ffe0; border-color: #5aad5a; }
+    #btn-delete    { background: #ffe0e0; border-color: #d9504a; display: none; }
+    #btn-download  { background: #dff0ff; border-color: #4a90d9; }
+
+    #hint {
+      margin-left: auto;
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+      white-space: nowrap;
+    }
+
+    /* ── Canvas area ── */
     #canvas-container {
       flex: 1;
       overflow: auto;
       padding: 16px;
-      display: flex;
-      align-items: flex-start;
     }
+
     #canvas {
       display: block;
+      cursor: crosshair;
       background-color: white;
       background-image:
-        linear-gradient(#eee 1px, transparent 1px),
-        linear-gradient(90deg, #eee 1px, transparent 1px);
+        linear-gradient(rgba(180,180,180,0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180,180,180,0.4) 1px, transparent 1px);
       background-size: 20px 20px;
-      cursor: crosshair;
-      box-shadow: 2px 2px 10px rgba(0,0,0,0.25);
+      box-shadow: 2px 2px 12px rgba(0,0,0,0.25);
     }
 
-    #loading {
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      color: #333;
-      z-index: 999;
-      gap: 14px;
+    /* ── SVG element classes (styled via CSS, not inline attrs) ── */
+    .design-rect {
+      stroke: #222;
+      stroke-width: 2;
+      cursor: pointer;
     }
-    .spinner {
-      width: 42px; height: 42px;
-      border: 4px solid #ddd;
-      border-top-color: #4a90d9;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+    .design-line {
+      fill: none;
+      stroke: #222;
+      stroke-width: 2.5;
+      cursor: pointer;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .design-text {
+      fill: #111;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      user-select: none;
+    }
 
-    #hint {
-      background: #fffbe6;
-      border-left: 3px solid #f0c040;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: #555;
-      white-space: nowrap;
+    /* ── Selection overlay ── */
+    .selected-outline {
+      fill: none;
+      stroke: #2277dd;
+      stroke-width: 1.5;
+      stroke-dasharray: 5 3;
+      pointer-events: none;
+    }
+    .control-handle {
+      fill: white;
+      stroke: #2277dd;
+      stroke-width: 2;
+      cursor: se-resize;
+    }
+    .bend-handle {
+      fill: #ff7700;
+      stroke: white;
+      stroke-width: 1.5;
+      cursor: grab;
     }
   </style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="spinner"></div>
-  Loading Python environment… (first load may take ~10 seconds)
-</div>
-
 <div id="toolbar">
-  <button id="btn-select" class="active">Select / Move</button>
-  <button id="btn-shape">Draw Room</button>
-  <button id="btn-line">Draw Wall</button>
-  <button id="btn-text">Add Label</button>
+  <div class="tool-group">
+    <button id="tool-select" class="active" onclick="setTool('select')">Select / Move</button>
+    <button id="tool-shape"  onclick="setTool('shape')">Draw Room</button>
+    <button id="tool-line"   onclick="setTool('line')">Draw Wall</button>
+    <button id="tool-text"   onclick="setTool('text')">Add Label</button>
+  </div>
+
   <div class="sep"></div>
+
+  <label>Fill:
+    <select id="fill-select" onchange="updateFillColor(this.value)">
+      <option value="none">None</option>
+      <option value="#ffffff">White</option>
+      <option value="#dce8ff">Blue</option>
+      <option value="#fffce0">Yellow</option>
+      <option value="#e8f5e9">Green</option>
+      <option value="#f5e8ff">Purple</option>
+      <option value="#ffe8e8">Pink</option>
+      <option value="#e8e8e8">Gray</option>
+    </select>
+  </label>
+
+  <div class="sep"></div>
+
   <label for="floor-select">Floor:</label>
-  <select id="floor-select"><option value="Floor 1">Floor 1</option></select>
-  <button id="btn-add-floor">+ Add Floor</button>
+  <select id="floor-select" onchange="switchFloor(this.value)"></select>
+  <button id="btn-add-floor" onclick="addNewFloor()">+ Add Floor</button>
+
   <div class="sep"></div>
-  <button id="btn-delete">Delete Selected</button>
-  <button id="btn-download">Download Blueprint</button>
-  <span id="hint">Right-click a wall to bend it &nbsp;|&nbsp; Right-click a label to resize</span>
-  <span id="status">Tool: Select / Move</span>
+
+  <button id="btn-delete"   onclick="deleteActiveElement()">Delete Selected</button>
+  <button id="btn-download" onclick="downloadPDF()">Download PDF</button>
+
+  <span id="hint">Drag corner handle to resize &nbsp;·&nbsp; Drag orange handle to bend walls &nbsp;·&nbsp; Delete / Backspace to remove</span>
 </div>
 
 <div id="canvas-container">
-  <canvas id="canvas" width="1200" height="800"></canvas>
+  <svg id="canvas" width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+    <g id="selection-layer"></g>
+  </svg>
 </div>
 
-<script type="py">
-from pyscript import document, window
-from pyodide.ffi import create_proxy, to_js
-import js
-import math
-import base64
-
-
-class HouseDesignTool:
-    def __init__(self):
-        self.tool = "select"
-        self.selected_idx = None
-        self.start_x = None
-        self.start_y = None
-        self.is_drawing = False
-        self.temp_item = None
-
-        self.floors = {"Floor 1": []}
-        self.current_floor = "Floor 1"
-        self.items = []
-
-        self.canvas_el = document.getElementById("canvas")
-        self.ctx = self.canvas_el.getContext("2d")
-
-        # Canvas events
-        for evt, fn in [
-            ("mousedown", self.on_press),
-            ("mousemove", self.on_drag),
-            ("mouseup", self.on_release),
-            ("contextmenu", self.on_right_click),
-        ]:
-            self.canvas_el.addEventListener(evt, create_proxy(fn))
-
-        # Toolbar events
-        bindings = {
-            "btn-select": lambda e: self.set_tool("select"),
-            "btn-shape":  lambda e: self.set_tool("shape"),
-            "btn-line":   lambda e: self.set_tool("line"),
-            "btn-text":   lambda e: self.set_tool("text"),
-            "btn-add-floor": lambda e: self.add_new_floor(),
-            "btn-delete":    lambda e: self.delete_selected(),
-            "btn-download":  lambda e: self.save_blueprint(),
-        }
-        for eid, fn in bindings.items():
-            document.getElementById(eid).addEventListener("click", create_proxy(fn))
-
-        document.getElementById("floor-select").addEventListener(
-            "change", create_proxy(self.on_floor_change)
-        )
-        document.addEventListener("keydown", create_proxy(self.on_keydown))
-
-        document.getElementById("loading").style.display = "none"
-        self.redraw()
-
-    # ── coords ────────────────────────────────────────────────────────────────
-    def get_coords(self, event):
-        rect = self.canvas_el.getBoundingClientRect()
-        return event.clientX - rect.left, event.clientY - rect.top
-
-    # ── tool ──────────────────────────────────────────────────────────────────
-    LABELS = {"select": "Select / Move", "shape": "Draw Room",
-              "line": "Draw Wall", "text": "Add Label"}
-
-    def set_tool(self, name):
-        self.tool = name
-        document.getElementById("status").textContent = f"Tool: {self.LABELS[name]}"
-        for btn, tool in [("btn-select","select"),("btn-shape","shape"),
-                          ("btn-line","line"),("btn-text","text")]:
-            document.getElementById(btn).className = "active" if tool == name else ""
-
-    # ── drawing ───────────────────────────────────────────────────────────────
-    def redraw(self):
-        w, h = self.canvas_el.width, self.canvas_el.height
-        self.ctx.clearRect(0, 0, w, h)
-        for i, item in enumerate(self.items):
-            self.draw_item(item, i == self.selected_idx)
-        if self.temp_item:
-            self.draw_item(self.temp_item, False)
-
-    def draw_item(self, item, selected):
-        color = "#0066cc" if selected else "#222"
-        self.ctx.strokeStyle = color
-        self.ctx.lineWidth = 2
-
-        t = item["type"]
-        if t == "rect":
-            x1 = min(item["x1"], item["x2"])
-            y1 = min(item["y1"], item["y2"])
-            w  = abs(item["x2"] - item["x1"])
-            h  = abs(item["y2"] - item["y1"])
-            if selected:
-                self.ctx.fillStyle = "rgba(0,102,204,0.07)"
-                self.ctx.fillRect(x1, y1, w, h)
-            self.ctx.strokeRect(x1, y1, w, h)
-            # dimension label
-            self.ctx.fillStyle = "#888"
-            self.ctx.font = "11px Arial"
-            self.ctx.fillText(f"{int(w)} × {int(h)}", x1 + 4, y1 + 13)
-
-        elif t == "line":
-            self.ctx.beginPath()
-            self.ctx.moveTo(item["x1"], item["y1"])
-            if item.get("xm") is not None:
-                self.ctx.quadraticCurveTo(item["xm"], item["ym"],
-                                          item["x2"], item["y2"])
-            else:
-                self.ctx.lineTo(item["x2"], item["y2"])
-            self.ctx.stroke()
-
-        elif t == "text":
-            self.ctx.fillStyle = color
-            self.ctx.font = f"{item['size']}px Arial"
-            self.ctx.fillText(item["text"], item["x"], item["y"])
-
-    # ── hit testing ───────────────────────────────────────────────────────────
-    def hit_test(self, x, y):
-        for i in range(len(self.items) - 1, -1, -1):
-            item = self.items[i]
-            t = item["type"]
-            if t == "rect":
-                x1 = min(item["x1"], item["x2"]) - 5
-                y1 = min(item["y1"], item["y2"]) - 5
-                x2 = max(item["x1"], item["x2"]) + 5
-                y2 = max(item["y1"], item["y2"]) + 5
-                inner_x1 = x1 + 11
-                inner_y1 = y1 + 11
-                inner_x2 = x2 - 11
-                inner_y2 = y2 - 11
-                on_border = (x1 <= x <= x2 and y1 <= y <= y2 and
-                             not (inner_x1 < x < inner_x2 and inner_y1 < y < inner_y2))
-                if on_border:
-                    return i
-            elif t == "line":
-                if self._seg_dist(x, y, item["x1"], item["y1"],
-                                  item["x2"], item["y2"]) < 8:
-                    return i
-            elif t == "text":
-                sz = item.get("size", 14)
-                est_w = len(item["text"]) * sz * 0.55
-                if (item["x"] - 4 <= x <= item["x"] + est_w and
-                        item["y"] - sz <= y <= item["y"] + 4):
-                    return i
-        return None
-
-    def _seg_dist(self, px, py, x1, y1, x2, y2):
-        dx, dy = x2 - x1, y2 - y1
-        if dx == 0 and dy == 0:
-            return math.hypot(px - x1, py - y1)
-        t = max(0.0, min(1.0, ((px-x1)*dx + (py-y1)*dy) / (dx*dx + dy*dy)))
-        return math.hypot(px - (x1 + t*dx), py - (y1 + t*dy))
-
-    # ── mouse events ──────────────────────────────────────────────────────────
-    def on_press(self, event):
-        x, y = self.get_coords(event)
-        self.start_x, self.start_y = x, y
-        self.is_drawing = True
-
-        if self.tool == "select":
-            self.selected_idx = self.hit_test(x, y)
-            self.redraw()
-        elif self.tool == "shape":
-            self.temp_item = {"type": "rect", "x1": x, "y1": y, "x2": x, "y2": y}
-        elif self.tool == "line":
-            self.temp_item = {"type": "line", "x1": x, "y1": y, "x2": x, "y2": y}
-        elif self.tool == "text":
-            text = window.prompt("Enter label text:")
-            if text:
-                self.items.append({"type": "text", "x": x, "y": y,
-                                   "text": text, "size": 14})
-                self.redraw()
-            self.set_tool("select")
-            self.is_drawing = False
-
-    def on_drag(self, event):
-        if not self.is_drawing:
-            return
-        x, y = self.get_coords(event)
-
-        if self.tool == "select" and self.selected_idx is not None:
-            dx, dy = x - self.start_x, y - self.start_y
-            item = self.items[self.selected_idx]
-            t = item["type"]
-            if t == "rect":
-                item["x1"] += dx; item["y1"] += dy
-                item["x2"] += dx; item["y2"] += dy
-            elif t == "line":
-                item["x1"] += dx; item["y1"] += dy
-                item["x2"] += dx; item["y2"] += dy
-                if item.get("xm") is not None:
-                    item["xm"] += dx; item["ym"] += dy
-            elif t == "text":
-                item["x"] += dx; item["y"] += dy
-            self.start_x, self.start_y = x, y
-            self.redraw()
-
-        elif self.tool in ("shape", "line") and self.temp_item:
-            self.temp_item["x2"] = x
-            self.temp_item["y2"] = y
-            self.redraw()
-
-    def on_release(self, event):
-        if not self.is_drawing:
-            return
-        self.is_drawing = False
-        if self.tool in ("shape", "line") and self.temp_item:
-            item = self.temp_item
-            has_size = (abs(item["x2"] - item["x1"]) > 3 or
-                        abs(item["y2"] - item["y1"]) > 3)
-            if has_size:
-                self.items.append(item)
-            self.temp_item = None
-            self.set_tool("select")
-            self.redraw()
-
-    def on_right_click(self, event):
-        event.preventDefault()
-        x, y = self.get_coords(event)
-        idx = self.hit_test(x, y)
-        if idx is None:
-            return
-        item = self.items[idx]
-        if item["type"] == "line":
-            item["xm"] = x
-            item["ym"] = y
-            self.redraw()
-        elif item["type"] == "text":
-            val = window.prompt("New font size (px):", str(item["size"]))
-            if val and val.isdigit():
-                item["size"] = int(val)
-                self.redraw()
-
-    def on_keydown(self, event):
-        if event.key not in ("Delete", "Backspace"):
-            return
-        tag = document.activeElement.tagName if document.activeElement else ""
-        if tag in ("INPUT", "TEXTAREA", "SELECT"):
-            return
-        self.delete_selected()
-
-    def delete_selected(self):
-        if self.selected_idx is not None:
-            self.items.pop(self.selected_idx)
-            self.selected_idx = None
-            self.redraw()
-
-    # ── floor management ──────────────────────────────────────────────────────
-    def save_floor(self):
-        self.floors[self.current_floor] = [dict(i) for i in self.items]
-
-    def load_floor(self, name):
-        self.current_floor = name
-        self.items = [dict(i) for i in self.floors.get(name, [])]
-        self.selected_idx = None
-        self.temp_item = None
-        self.redraw()
-
-    def add_new_floor(self):
-        self.save_floor()
-        name = f"Floor {len(self.floors) + 1}"
-        self.floors[name] = []
-        sel = document.getElementById("floor-select")
-        opt = document.createElement("option")
-        opt.value = name
-        opt.text = name
-        sel.appendChild(opt)
-        sel.value = name
-        self.load_floor(name)
-
-    def on_floor_change(self, event):
-        name = document.getElementById("floor-select").value
-        if name != self.current_floor:
-            self.save_floor()
-            self.load_floor(name)
-
-    # ── export ────────────────────────────────────────────────────────────────
-    def items_to_svg(self, items):
-        parts = []
-        for item in items:
-            t = item["type"]
-            if t == "rect":
-                x1 = min(item["x1"], item["x2"])
-                y1 = min(item["y1"], item["y2"])
-                w  = abs(item["x2"] - item["x1"])
-                h  = abs(item["y2"] - item["y1"])
-                parts.append(
-                    f'<rect x="{x1:.1f}" y="{y1:.1f}" width="{w:.1f}" '
-                    f'height="{h:.1f}" fill="none" stroke="black" stroke-width="2"/>'
-                )
-            elif t == "line":
-                if item.get("xm") is not None:
-                    parts.append(
-                        f'<path d="M {item["x1"]:.1f} {item["y1"]:.1f} '
-                        f'Q {item["xm"]:.1f} {item["ym"]:.1f} '
-                        f'{item["x2"]:.1f} {item["y2"]:.1f}" '
-                        f'fill="none" stroke="black" stroke-width="2"/>'
-                    )
-                else:
-                    parts.append(
-                        f'<line x1="{item["x1"]:.1f}" y1="{item["y1"]:.1f}" '
-                        f'x2="{item["x2"]:.1f}" y2="{item["y2"]:.1f}" '
-                        f'stroke="black" stroke-width="2"/>'
-                    )
-            elif t == "text":
-                safe = (item["text"]
-                        .replace("&", "&amp;")
-                        .replace("<", "&lt;")
-                        .replace(">", "&gt;"))
-                parts.append(
-                    f'<text x="{item["x"]:.1f}" y="{item["y"]:.1f}" '
-                    f'font-family="Arial" font-size="{item["size"]}">{safe}</text>'
-                )
-        return "\n      ".join(parts)
-
-    def save_blueprint(self):
-        self.save_floor()
-        pages = []
-        for name in sorted(self.floors.keys()):
-            svg_body = self.items_to_svg(self.floors[name])
-            pages.append(f"""  <div class="page">
-    <h2>{name}</h2>
-    <svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M20 0H0V20" fill="none" stroke="#eee" stroke-width="0.5"/>
-        </pattern>
-      </defs>
-      <rect width="1200" height="800" fill="white"/>
-      <rect width="1200" height="800" fill="url(#g)"/>
-      {svg_body}
-    </svg>
-  </div>""")
-
-        html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>House Blueprint</title>
-<style>
-  body{font-family:Arial,sans-serif;margin:20px;background:#eee}
-  h1{color:#333;margin-bottom:20px}
-  .page{background:white;padding:20px;margin-bottom:30px;
-        box-shadow:2px 2px 8px rgba(0,0,0,.15);page-break-after:always}
-  h2{color:#555;margin-bottom:10px}
-  svg{border:1px solid #ddd;display:block}
-  @media print{body{background:white;margin:0}
-    .page{box-shadow:none;margin:0;padding:0}}
-  footer{color:#aaa;font-size:11px;margin-top:10px}
-</style>
-</head>
-<body>
-<h1>House Blueprint</h1>
-""" + "\n".join(pages) + """
-<footer>Generated by Multi-Floor House Design Tool</footer>
-</body>
-</html>"""
-
-        encoded = base64.b64encode(html.encode("utf-8")).decode("ascii")
-        a = document.createElement("a")
-        a.href = f"data:text/html;base64,{encoded}"
-        a.download = "blueprint.html"
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-
-
-app = HouseDesignTool()
-</script>
+<script src="coolcode.js"></script>
 </body>
 </html>
