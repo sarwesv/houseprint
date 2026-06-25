@@ -452,6 +452,87 @@ function downloadPDF() {
     pdf.save('blueprint.pdf');
 }
 
+// ── Room templates ──────────────────────────────────────────────────────────
+
+const TEMPLATES = {
+    bedroom: { w: 220, h: 205, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 220, height: 205, fill: 'none' },
+        { type: 'rect', dx: 10,  dy: 15,  width: 110, height: 150, fill: '#c8e0ff' },
+        { type: 'text', dx: 45,  dy: 95,  fontSize: 13, text: 'Bed' },
+        { type: 'rect', dx: 140, dy: 15,  width: 70,  height: 35,  fill: '#d0d8e8' },
+        { type: 'text', dx: 150, dy: 37,  fontSize: 11, text: 'Closet' },
+        { type: 'text', dx: 75,  dy: 192, fontSize: 13, text: 'Bedroom' },
+    ]},
+    bathroom: { w: 155, h: 185, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 155, height: 185, fill: 'none' },
+        { type: 'rect', dx: 10,  dy: 10,  width: 38,  height: 52,  fill: '#d0d8e8' },
+        { type: 'text', dx: 14,  dy: 40,  fontSize: 11, text: 'WC' },
+        { type: 'rect', dx: 58,  dy: 10,  width: 42,  height: 38,  fill: '#d0d8e8' },
+        { type: 'text', dx: 62,  dy: 32,  fontSize: 11, text: 'Sink' },
+        { type: 'rect', dx: 10,  dy: 75,  width: 135, height: 95,  fill: '#b8e8ff' },
+        { type: 'text', dx: 55,  dy: 127, fontSize: 12, text: 'Bath' },
+        { type: 'text', dx: 38,  dy: 174, fontSize: 13, text: 'Bathroom' },
+    ]},
+    kitchen: { w: 245, h: 195, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 245, height: 195, fill: 'none' },
+        { type: 'rect', dx: 10,  dy: 10,  width: 225, height: 35,  fill: '#d0d8e8' },
+        { type: 'text', dx: 90,  dy: 32,  fontSize: 12, text: 'Counter' },
+        { type: 'rect', dx: 10,  dy: 55,  width: 35,  height: 125, fill: '#d0d8e8' },
+        { type: 'rect', dx: 85,  dy: 88,  width: 125, height: 62,  fill: '#c8e0ff' },
+        { type: 'text', dx: 120, dy: 124, fontSize: 12, text: 'Island' },
+        { type: 'text', dx: 95,  dy: 184, fontSize: 13, text: 'Kitchen' },
+    ]},
+    living: { w: 285, h: 235, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 285, height: 235, fill: 'none' },
+        { type: 'rect', dx: 83,  dy: 10,  width: 120, height: 28,  fill: '#162030' },
+        { type: 'text', dx: 126, dy: 29,  fontSize: 11, text: 'TV' },
+        { type: 'rect', dx: 93,  dy: 65,  width: 100, height: 60,  fill: '#c8e0ff' },
+        { type: 'text', dx: 121, dy: 100, fontSize: 12, text: 'Table' },
+        { type: 'rect', dx: 10,  dy: 148, width: 205, height: 70,  fill: '#d0d8e8' },
+        { type: 'text', dx: 90,  dy: 188, fontSize: 13, text: 'Sofa' },
+        { type: 'text', dx: 88,  dy: 224, fontSize: 13, text: 'Living Room' },
+    ]},
+    office: { w: 225, h: 195, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 225, height: 195, fill: 'none' },
+        { type: 'rect', dx: 10,  dy: 10,  width: 165, height: 58,  fill: '#c8e0ff' },
+        { type: 'text', dx: 70,  dy: 43,  fontSize: 13, text: 'Desk' },
+        { type: 'rect', dx: 62,  dy: 78,  width: 62,  height: 58,  fill: '#d0d8e8' },
+        { type: 'text', dx: 74,  dy: 112, fontSize: 12, text: 'Chair' },
+        { type: 'rect', dx: 190, dy: 10,  width: 28,  height: 135, fill: '#d0d8e8' },
+        { type: 'text', dx: 193, dy: 82,  fontSize: 10, text: 'Books' },
+        { type: 'text', dx: 86,  dy: 185, fontSize: 13, text: 'Office' },
+    ]},
+    garage: { w: 285, h: 215, items: [
+        { type: 'rect', dx: 0,   dy: 0,   width: 285, height: 215, fill: 'none' },
+        { type: 'rect', dx: 30,  dy: 52,  width: 225, height: 112, fill: '#1e2d3d' },
+        { type: 'text', dx: 120, dy: 113, fontSize: 14, text: 'Car' },
+        { type: 'text', dx: 108, dy: 204, fontSize: 13, text: 'Garage' },
+    ]},
+};
+
+function insertTemplate() {
+    const key = document.getElementById('insert-select').value;
+    const tmpl = TEMPLATES[key];
+    if (!tmpl) return;
+
+    const container = document.getElementById('canvas-container');
+    const ox = Math.round(container.scrollLeft + (container.clientWidth  - tmpl.w) / 2);
+    const oy = Math.round(container.scrollTop  + (container.clientHeight - tmpl.h) / 2);
+
+    tmpl.items.forEach(def => {
+        const attrs = { class: def.type === 'text' ? 'design-text' : 'design-rect' };
+        if (def.type === 'rect') {
+            Object.assign(attrs, { x: ox + def.dx, y: oy + def.dy, width: def.width, height: def.height, fill: def.fill || 'none' });
+        } else {
+            Object.assign(attrs, { x: ox + def.dx, y: oy + def.dy, 'font-size': String(def.fontSize || 13) });
+        }
+        setupSelectable(createSVGElement(def.type, attrs, def.text || ''));
+    });
+
+    restructureLayers();
+    saveState();
+}
+
 // ── Init ────────────────────────────────────────────────────────────────────
 
 updateColorPreview();

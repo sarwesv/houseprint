@@ -56,6 +56,8 @@
     #btn-delete:hover { background: #220a0a; border-color: #cc3333; }
     #btn-download  { border-color: #1e4a8a; color: #5bc8ff; }
     #btn-download:hover { background: #0e2a52; }
+    #btn-insert    { border-color: #5a3e9a; color: #c0a0ff; }
+    #btn-insert:hover { background: #1a0e3a; border-color: #8060cc; }
 
     #hint {
       margin-left: auto;
@@ -214,6 +216,18 @@
   <label for="floor-select">Floor:</label>
   <select id="floor-select" onchange="switchFloor(this.value)"></select>
   <button id="btn-add-floor" onclick="addNewFloor()">+ Add Floor</button>
+
+  <div class="sep"></div>
+
+  <select id="insert-select">
+    <option value="bedroom">Bedroom</option>
+    <option value="bathroom">Bathroom</option>
+    <option value="kitchen">Kitchen</option>
+    <option value="living">Living Room</option>
+    <option value="office">Office</option>
+    <option value="garage">Garage</option>
+  </select>
+  <button id="btn-insert" onclick="insertTemplate()">+ Insert</button>
 
   <div class="sep"></div>
 
