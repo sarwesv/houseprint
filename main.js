@@ -453,60 +453,73 @@ function downloadPDF() {
 }
 
 // ── Room templates ──────────────────────────────────────────────────────────
+// Each item type:
+//   'room'  – room outline rect (no fill)
+//   'box'   – furniture rect + label auto-centered inside it
+//   'label' – standalone room-name text, centered at (dx, dy)
 
 const TEMPLATES = {
-    bedroom: { w: 220, h: 205, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 220, height: 205, fill: 'none' },
-        { type: 'rect', dx: 10,  dy: 15,  width: 110, height: 150, fill: '#c8e0ff' },
-        { type: 'text', dx: 45,  dy: 95,  fontSize: 13, text: 'Bed' },
-        { type: 'rect', dx: 140, dy: 15,  width: 70,  height: 35,  fill: '#d0d8e8' },
-        { type: 'text', dx: 150, dy: 37,  fontSize: 11, text: 'Closet' },
-        { type: 'text', dx: 75,  dy: 192, fontSize: 13, text: 'Bedroom' },
+    bedroom: { w: 235, h: 215, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 235, height: 215 },
+        { type: 'box',  dx: 10,  dy: 20,  width: 135, height: 160, fill: '#c8e0ff', label: 'Bed' },
+        { type: 'box',  dx: 155, dy: 20,  width: 42,  height: 38,  fill: '#d0d8e8', label: 'Stand',    fontSize: 10 },
+        { type: 'box',  dx: 155, dy: 68,  width: 72,  height: 105, fill: '#d0d8e8', label: 'Wardrobe', fontSize: 11 },
+        { type: 'label', dx: 118, dy: 205, text: 'Bedroom' },
     ]},
-    bathroom: { w: 155, h: 185, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 155, height: 185, fill: 'none' },
-        { type: 'rect', dx: 10,  dy: 10,  width: 38,  height: 52,  fill: '#d0d8e8' },
-        { type: 'text', dx: 14,  dy: 40,  fontSize: 11, text: 'WC' },
-        { type: 'rect', dx: 58,  dy: 10,  width: 42,  height: 38,  fill: '#d0d8e8' },
-        { type: 'text', dx: 62,  dy: 32,  fontSize: 11, text: 'Sink' },
-        { type: 'rect', dx: 10,  dy: 75,  width: 135, height: 95,  fill: '#b8e8ff' },
-        { type: 'text', dx: 55,  dy: 127, fontSize: 12, text: 'Bath' },
-        { type: 'text', dx: 38,  dy: 174, fontSize: 13, text: 'Bathroom' },
+    bathroom: { w: 175, h: 195, items: [
+        { type: 'room', dx: 0,  dy: 0,   width: 175, height: 195 },
+        { type: 'box',  dx: 10, dy: 10,  width: 48,  height: 60,  fill: '#d0d8e8', label: 'Toilet',  fontSize: 11 },
+        { type: 'box',  dx: 10, dy: 80,  width: 58,  height: 50,  fill: '#d0d8e8', label: 'Sink',    fontSize: 11 },
+        { type: 'box',  dx: 75, dy: 10,  width: 90,  height: 165, fill: '#b8e8ff', label: 'Shower' },
+        { type: 'label', dx: 88, dy: 187, text: 'Bathroom' },
     ]},
-    kitchen: { w: 245, h: 195, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 245, height: 195, fill: 'none' },
-        { type: 'rect', dx: 10,  dy: 10,  width: 225, height: 35,  fill: '#d0d8e8' },
-        { type: 'text', dx: 90,  dy: 32,  fontSize: 12, text: 'Counter' },
-        { type: 'rect', dx: 10,  dy: 55,  width: 35,  height: 125, fill: '#d0d8e8' },
-        { type: 'rect', dx: 85,  dy: 88,  width: 125, height: 62,  fill: '#c8e0ff' },
-        { type: 'text', dx: 120, dy: 124, fontSize: 12, text: 'Island' },
-        { type: 'text', dx: 95,  dy: 184, fontSize: 13, text: 'Kitchen' },
+    kitchen: { w: 270, h: 210, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 270, height: 210 },
+        { type: 'box',  dx: 10,  dy: 10,  width: 250, height: 42,  fill: '#d0d8e8', label: 'Counter' },
+        { type: 'box',  dx: 10,  dy: 62,  width: 62,  height: 48,  fill: '#d0d8e8', label: 'Sink',   fontSize: 11 },
+        { type: 'box',  dx: 205, dy: 62,  width: 55,  height: 62,  fill: '#d0d8e8', label: 'Fridge', fontSize: 11 },
+        { type: 'box',  dx: 72,  dy: 118, width: 145, height: 68,  fill: '#c8e0ff', label: 'Island' },
+        { type: 'label', dx: 135, dy: 201, text: 'Kitchen' },
     ]},
-    living: { w: 285, h: 235, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 285, height: 235, fill: 'none' },
-        { type: 'rect', dx: 83,  dy: 10,  width: 120, height: 28,  fill: '#162030' },
-        { type: 'text', dx: 126, dy: 29,  fontSize: 11, text: 'TV' },
-        { type: 'rect', dx: 93,  dy: 65,  width: 100, height: 60,  fill: '#c8e0ff' },
-        { type: 'text', dx: 121, dy: 100, fontSize: 12, text: 'Table' },
-        { type: 'rect', dx: 10,  dy: 148, width: 205, height: 70,  fill: '#d0d8e8' },
-        { type: 'text', dx: 90,  dy: 188, fontSize: 13, text: 'Sofa' },
-        { type: 'text', dx: 88,  dy: 224, fontSize: 13, text: 'Living Room' },
+    living: { w: 305, h: 260, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 305, height: 260 },
+        { type: 'box',  dx: 63,  dy: 10,  width: 180, height: 32,  fill: '#162030', label: 'TV',    fontSize: 11 },
+        { type: 'box',  dx: 10,  dy: 65,  width: 68,  height: 68,  fill: '#d0d8e8', label: 'Chair', fontSize: 11 },
+        { type: 'box',  dx: 228, dy: 65,  width: 68,  height: 68,  fill: '#d0d8e8', label: 'Chair', fontSize: 11 },
+        { type: 'box',  dx: 98,  dy: 72,  width: 110, height: 55,  fill: '#c8e0ff', label: 'Table', fontSize: 11 },
+        { type: 'box',  dx: 40,  dy: 162, width: 225, height: 78,  fill: '#d0d8e8', label: 'Sofa' },
+        { type: 'label', dx: 153, dy: 250, text: 'Living Room' },
     ]},
-    office: { w: 225, h: 195, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 225, height: 195, fill: 'none' },
-        { type: 'rect', dx: 10,  dy: 10,  width: 165, height: 58,  fill: '#c8e0ff' },
-        { type: 'text', dx: 70,  dy: 43,  fontSize: 13, text: 'Desk' },
-        { type: 'rect', dx: 62,  dy: 78,  width: 62,  height: 58,  fill: '#d0d8e8' },
-        { type: 'text', dx: 74,  dy: 112, fontSize: 12, text: 'Chair' },
-        { type: 'rect', dx: 190, dy: 10,  width: 28,  height: 135, fill: '#d0d8e8' },
-        { type: 'text', dx: 193, dy: 82,  fontSize: 10, text: 'Books' },
-        { type: 'text', dx: 86,  dy: 185, fontSize: 13, text: 'Office' },
+    dining: { w: 280, h: 235, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 280, height: 235 },
+        { type: 'box',  dx: 65,  dy: 73,  width: 150, height: 90,  fill: '#c8e0ff', label: 'Dining Table', fontSize: 11 },
+        { type: 'box',  dx: 112, dy: 43,  width: 56,  height: 25,  fill: '#d0d8e8', label: 'Chair', fontSize: 9 },
+        { type: 'box',  dx: 112, dy: 168, width: 56,  height: 25,  fill: '#d0d8e8', label: 'Chair', fontSize: 9 },
+        { type: 'box',  dx: 30,  dy: 90,  width: 28,  height: 55,  fill: '#d0d8e8', label: 'Chair', fontSize: 9 },
+        { type: 'box',  dx: 222, dy: 90,  width: 28,  height: 55,  fill: '#d0d8e8', label: 'Chair', fontSize: 9 },
+        { type: 'label', dx: 140, dy: 225, text: 'Dining Room' },
     ]},
-    garage: { w: 285, h: 215, items: [
-        { type: 'rect', dx: 0,   dy: 0,   width: 285, height: 215, fill: 'none' },
-        { type: 'rect', dx: 30,  dy: 52,  width: 225, height: 112, fill: '#1e2d3d' },
-        { type: 'text', dx: 120, dy: 113, fontSize: 14, text: 'Car' },
-        { type: 'text', dx: 108, dy: 204, fontSize: 13, text: 'Garage' },
+    laundry: { w: 215, h: 205, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 215, height: 205 },
+        { type: 'box',  dx: 10,  dy: 10,  width: 85,  height: 85,  fill: '#c8e0ff', label: 'Washer' },
+        { type: 'box',  dx: 105, dy: 10,  width: 85,  height: 85,  fill: '#d0d8e8', label: 'Dryer' },
+        { type: 'box',  dx: 10,  dy: 105, width: 62,  height: 68,  fill: '#d0d8e8', label: 'Sink',    fontSize: 11 },
+        { type: 'box',  dx: 82,  dy: 108, width: 120, height: 58,  fill: '#c8e0ff', label: 'Folding', fontSize: 11 },
+        { type: 'label', dx: 108, dy: 196, text: 'Laundry' },
+    ]},
+    office: { w: 240, h: 205, items: [
+        { type: 'room', dx: 0,   dy: 0,   width: 240, height: 205 },
+        { type: 'box',  dx: 10,  dy: 10,  width: 175, height: 62,  fill: '#c8e0ff', label: 'Desk' },
+        { type: 'box',  dx: 60,  dy: 82,  width: 68,  height: 65,  fill: '#d0d8e8', label: 'Chair',   fontSize: 11 },
+        { type: 'box',  dx: 10,  dy: 82,  width: 42,  height: 65,  fill: '#d0d8e8', label: 'Cabinet', fontSize: 9 },
+        { type: 'box',  dx: 200, dy: 10,  width: 32,  height: 150, fill: '#d0d8e8', label: 'Shelf',   fontSize: 10 },
+        { type: 'label', dx: 120, dy: 196, text: 'Office' },
+    ]},
+    garage: { w: 300, h: 230, items: [
+        { type: 'room', dx: 0,  dy: 0,   width: 300, height: 230 },
+        { type: 'box',  dx: 45, dy: 15,  width: 210, height: 125, fill: '#1e2d3d', label: 'Car', fontSize: 14 },
+        { type: 'box',  dx: 10, dy: 153, width: 280, height: 48,  fill: '#d0d8e8', label: 'Workbench' },
+        { type: 'label', dx: 150, dy: 221, text: 'Garage' },
     ]},
 };
 
@@ -520,13 +533,33 @@ function insertTemplate() {
     const oy = Math.round(container.scrollTop  + (container.clientHeight - tmpl.h) / 2);
 
     tmpl.items.forEach(def => {
-        const attrs = { class: def.type === 'text' ? 'design-text' : 'design-rect' };
-        if (def.type === 'rect') {
-            Object.assign(attrs, { x: ox + def.dx, y: oy + def.dy, width: def.width, height: def.height, fill: def.fill || 'none' });
-        } else {
-            Object.assign(attrs, { x: ox + def.dx, y: oy + def.dy, 'font-size': String(def.fontSize || 13) });
+        if (def.type === 'room') {
+            setupSelectable(createSVGElement('rect', {
+                class: 'design-rect', fill: 'none',
+                x: ox + def.dx, y: oy + def.dy, width: def.width, height: def.height,
+            }));
+        } else if (def.type === 'box') {
+            setupSelectable(createSVGElement('rect', {
+                class: 'design-rect',
+                x: ox + def.dx, y: oy + def.dy, width: def.width, height: def.height,
+                fill: def.fill || 'none',
+            }));
+            setupSelectable(createSVGElement('text', {
+                class: 'design-text',
+                x: ox + def.dx + def.width  / 2,
+                y: oy + def.dy + def.height / 2,
+                'font-size': String(def.fontSize || 12),
+                'text-anchor': 'middle',
+                'dominant-baseline': 'central',
+            }, def.label || ''));
+        } else if (def.type === 'label') {
+            setupSelectable(createSVGElement('text', {
+                class: 'design-text',
+                x: ox + def.dx, y: oy + def.dy,
+                'font-size': String(def.fontSize || 13),
+                'text-anchor': 'middle',
+            }, def.text || ''));
         }
-        setupSelectable(createSVGElement(def.type, attrs, def.text || ''));
     });
 
     restructureLayers();
